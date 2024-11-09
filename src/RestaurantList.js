@@ -1,4 +1,3 @@
-// src/RestaurantList.js
 import React, { useEffect, useState } from 'react';
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "./firebaseConfig";
@@ -6,28 +5,28 @@ import RestaurantForm from "./RestaurantForm";
 import { addRestaurant, updateRestaurant, deleteRestaurant } from "./firestoreService";
 import { Edit2, Trash2 } from "lucide-react";
 import Button from "./components/shadcn/Button";
-import ConfirmationDialog from "./components/shadcn/ConfirmationDialog"; // Importar el diálogo de confirmación
+import ConfirmationDialog from "./components/shadcn/ConfirmationDialog"; // Usamos el diálogo de Shadcn
 
 function RestaurantList() {
   const [restaurants, setRestaurants] = useState([]);
   const [editingRestaurant, setEditingRestaurant] = useState(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false); // Estado para el diálogo
+  const [isDialogOpen, setIsDialogOpen] = useState(false); // Estado del diálogo
   const [restaurantToDelete, setRestaurantToDelete] = useState(null); // Restaurante a eliminar
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "restaurants"), (snapshot) => {
       setRestaurants(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
-    return unsubscribe;
+    return unsubscribe; // Limpia la suscripción al desmontar el componente
   }, []);
 
   const handleAddOrUpdate = async (data) => {
     try {
       if (editingRestaurant) {
-        await updateRestaurant(editingRestaurant.id, data);
-        setEditingRestaurant(null);
+        await updateRestaurant(editingRestaurant.id, data); // Actualiza si hay restaurante en edición
+        setEditingRestaurant(null); // Limpia el modo de edición
       } else {
-        await addRestaurant(data);
+        await addRestaurant(data); // Agrega un nuevo restaurante
       }
     } catch (error) {
       console.error("Error saving restaurant:", error);
@@ -41,7 +40,7 @@ function RestaurantList() {
   const handleDelete = async () => {
     if (restaurantToDelete) {
       try {
-        await deleteRestaurant(restaurantToDelete.id);
+        await deleteRestaurant(restaurantToDelete.id); // Elimina el restaurante
         setRestaurantToDelete(null);
       } catch (error) {
         console.error("Error deleting restaurant:", error);
@@ -77,6 +76,7 @@ function RestaurantList() {
               Creado: {restaurant.createdAt ? new Date(restaurant.createdAt.seconds * 1000).toLocaleString() : "Fecha no disponible"}
             </p>
 
+            {/* Botones de acción: editar y eliminar */}
             <div className="flex space-x-3 mt-4">
               <Button
                 className="flex items-center text-indigo-500 hover:text-indigo-600 font-medium"
@@ -98,7 +98,7 @@ function RestaurantList() {
         ))}
       </div>
 
-      {/* Diálogo de confirmación para eliminar */}
+      {/* Diálogo de confirmación para la eliminación */}
       <ConfirmationDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
