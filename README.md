@@ -1,6 +1,6 @@
 # CRUD Restaurant
 
-##Tecnologias Utilizadas
+## Tecnologias Utilizadas
 * React 
 * Firebase(Firestore)
 * React-hook-form
