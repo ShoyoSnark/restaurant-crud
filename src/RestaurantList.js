@@ -1,35 +1,32 @@
 // src/RestaurantList.js
-
-// Importaciones necesarias: React y sus hooks, Firestore, iconos, y componentes personalizados
 import React, { useEffect, useState } from 'react';
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import RestaurantForm from "./RestaurantForm";
 import { addRestaurant, updateRestaurant, deleteRestaurant } from "./firestoreService";
-import { Edit2, Trash2 } from "lucide-react"; // Iconos de edición y eliminación
+import { Edit2, Trash2 } from "lucide-react";
+import Button from "./components/shadcn/Button";
+import ConfirmationDialog from "./components/shadcn/ConfirmationDialog"; // Importar el diálogo de confirmación
 
-// Componente principal que muestra la lista de restaurantes y el formulario para añadir/editar
 function RestaurantList() {
-  const [restaurants, setRestaurants] = useState([]); // Estado para almacenar los restaurantes
-  const [editingRestaurant, setEditingRestaurant] = useState(null); // Estado para el restaurante en edición
+  const [restaurants, setRestaurants] = useState([]);
+  const [editingRestaurant, setEditingRestaurant] = useState(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false); // Estado para el diálogo
+  const [restaurantToDelete, setRestaurantToDelete] = useState(null); // Restaurante a eliminar
 
-  // useEffect que se ejecuta al montar el componente: escucha cambios en la colección de restaurantes
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, "restaurants"), (snapshot) => {
       setRestaurants(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
-    return unsubscribe; // Limpia la suscripción al desmontar el componente
+    return unsubscribe;
   }, []);
 
-  // Función para añadir o actualizar un restaurante
   const handleAddOrUpdate = async (data) => {
     try {
       if (editingRestaurant) {
-        // Modo de edición: actualiza el restaurante
         await updateRestaurant(editingRestaurant.id, data);
-        setEditingRestaurant(null); // Limpia el modo de edición
+        setEditingRestaurant(null);
       } else {
-        // Modo de creación: añade un nuevo restaurante
         await addRestaurant(data);
       }
     } catch (error) {
@@ -37,16 +34,15 @@ function RestaurantList() {
     }
   };
 
-  // Activa el modo de edición para el restaurante seleccionado
   const handleEdit = (restaurant) => {
     setEditingRestaurant(restaurant);
   };
 
-  // Función para eliminar un restaurante
-  const handleDelete = async (id) => {
-    if (window.confirm("¿Estás seguro de que deseas eliminar este restaurante?")) {
+  const handleDelete = async () => {
+    if (restaurantToDelete) {
       try {
-        await deleteRestaurant(id);
+        await deleteRestaurant(restaurantToDelete.id);
+        setRestaurantToDelete(null);
       } catch (error) {
         console.error("Error deleting restaurant:", error);
       }
@@ -54,58 +50,61 @@ function RestaurantList() {
   };
 
   return (
-    <div className="flex flex-col items-center space-y-8">
-      {/* Título del componente */}
-      <h1 className="text-4xl font-extrabold text-center text-gray-800 mb-2 shadow-lg">
-        Gestión de Restaurantes
-      </h1>
-      <div className="w-24 h-1 bg-blue-500 rounded-full mb-6"></div>
+    <div className="flex flex-col items-center space-y-6">
+      <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Gestión de Restaurantes</h1>
+      <div className="w-24 h-1 bg-indigo-500 rounded-full mb-6"></div>
 
-      {/* Formulario para crear o editar un restaurante */}
       <RestaurantForm
         onSubmit={handleAddOrUpdate}
-        restaurantData={editingRestaurant} // Pasa el restaurante en edición si está seleccionado
-        clearEditing={() => setEditingRestaurant(null)} // Limpia el estado de edición
+        restaurantData={editingRestaurant}
+        clearEditing={() => setEditingRestaurant(null)}
       />
 
-      {/* Lista de restaurantes */}
       <div className="w-full max-w-lg space-y-4">
         {restaurants.map((restaurant) => (
           <div
             key={restaurant.id}
-            className="p-4 bg-white rounded-lg shadow-lg border border-gray-200 flex flex-col space-y-2 hover:shadow-xl transition-shadow duration-200"
+            className="p-4 bg-white rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow"
           >
-            {/* Información del restaurante: nombre y estado (Activo/Inactivo) */}
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-semibold text-gray-800">{restaurant.name}</h2>
-              <span className={`text-sm font-medium px-2 py-1 rounded-lg ${restaurant.active ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}>
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${restaurant.active ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
                 {restaurant.active ? "Activo" : "Inactivo"}
               </span>
             </div>
 
-            {/* Fecha de creación del restaurante */}
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-400 mt-2">
               Creado: {restaurant.createdAt ? new Date(restaurant.createdAt.seconds * 1000).toLocaleString() : "Fecha no disponible"}
             </p>
 
-            {/* Botones de edición y eliminación */}
-            <div className="flex space-x-4 mt-2">
-              <button
+            <div className="flex space-x-3 mt-4">
+              <Button
+                className="flex items-center text-indigo-500 hover:text-indigo-600 font-medium"
                 onClick={() => handleEdit(restaurant)}
-                className="flex items-center text-blue-500 hover:text-blue-600 font-medium transition-colors duration-200"
               >
                 <Edit2 className="mr-1" size={16} /> Editar
-              </button>
-              <button
-                onClick={() => handleDelete(restaurant.id)}
-                className="flex items-center text-red-500 hover:text-red-600 font-medium transition-colors duration-200"
+              </Button>
+              <Button
+                className="flex items-center text-red-500 hover:text-red-600 font-medium"
+                onClick={() => {
+                  setRestaurantToDelete(restaurant);
+                  setIsDialogOpen(true); // Abre el diálogo de confirmación
+                }}
               >
                 <Trash2 className="mr-1" size={16} /> Eliminar
-              </button>
+              </Button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Diálogo de confirmación para eliminar */}
+      <ConfirmationDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onConfirm={handleDelete}
+        message={`¿Estás seguro de que deseas eliminar el restaurante "${restaurantToDelete?.name}"?`}
+      />
     </div>
   );
 }
